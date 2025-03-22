@@ -3,6 +3,7 @@ import cv2
 import time
 import heapq
 from collections import deque
+import math
 
 # Create a white background image for the maze
 maze = np.ones((50, 220, 3), dtype=np.uint8) * 255
@@ -100,8 +101,10 @@ def get_valid_position(maze_binary, prompt):
         except ValueError:
             print("Invalid input! Enter two space-separated integers.")
 
-# Dijkstra's Algorithm Implementation
-def dijkstra_maze(maze, start_pos, goal_pos):
+# a_star  Algorithm Implementation
+def heuristic(current, goal):
+    return math.sqrt((current[0] - goal[0]) ** 2 + (current[1] - goal[1]) ** 2)
+def astar_maze(maze, start_pos, goal_pos):
     rows, cols = maze.shape
     directions = [(0,1), (1,0), (0,-1), (-1,0), (1,1), (-1,-1), (1,-1), (-1,1)]
     
@@ -110,11 +113,11 @@ def dijkstra_maze(maze, start_pos, goal_pos):
     parent_map = {}  # For backtracking the path
     CostToCome = {tuple(start_pos): 0}  
     # Add the start position to the OpenList
-    heapq.heappush(OpenList, (0, tuple(start_pos)))  
+    heapq.heappush(OpenList,(heuristic(start_pos, goal_pos), tuple(start_pos)))
     parent_map[tuple(start_pos)] = None  
-    # Run Dijkstra's algorithm
+    # Run a_star  algorithm
     while OpenList:
-        cost, current_pos = heapq.heappop(OpenList)  
+        _, current_pos = heapq.heappop(OpenList)
         
         # Skip if already in closed list
         if current_pos in ClosedList:
@@ -137,7 +140,8 @@ def dijkstra_maze(maze, start_pos, goal_pos):
                     # If the new cost is less than the cost to come to the new position
                     if new_pos not in CostToCome or new_cost < CostToCome[new_pos]:
                         CostToCome[new_pos] = new_cost  
-                        heapq.heappush(OpenList, (new_cost, new_pos))  
+                        priority = new_cost + heuristic(new_pos, goal_pos)
+                        heapq.heappush(OpenList, (priority, new_pos))  
                         parent_map[new_pos] = current_pos  
 
     return "Failure", ClosedList  
@@ -176,10 +180,10 @@ print("Note: Enter coordinates as 'row col' (vertical, horizontal)")
 start_pos = get_valid_position(inflated_maze_binary, "Enter START coordinates (x y): ")
 goal_pos = get_valid_position(inflated_maze_binary, "Enter GOAL coordinates (x y): ")
     
-# Run Dijkstra's algorithm
-print("Running Dijkstra's algorithm...")
+# Run a_star  algorithm
+print("Running a_star  algorithm...")
 start_time = time.time()
-path, explored_nodes = dijkstra_maze(inflated_maze_binary, start_pos, goal_pos)
+path, explored_nodes = astar_maze(inflated_maze_binary, start_pos, goal_pos)
 end_time = time.time()
     
 # Create a list to store frames
@@ -195,7 +199,7 @@ cv2.rectangle(exploration_viz, (sy * 5, sx * 5), (sy * 5 + 5, sx * 5 + 5), (0, 0
 cv2.rectangle(exploration_viz, (gy * 5, gx * 5), (gy * 5 + 5, gx * 5 + 5), (255, 0, 255), -1)  # Magenta for goal
 frames.append(exploration_viz.copy())
 
-# Animate Dijkstra exploration frame by frame
+# Animate Astar exploration frame by frame
 for node in explored_nodes:
     x, y = node
     # Skip drawing if the node is start or goal
@@ -229,7 +233,7 @@ cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 # Create a video of the BFS exploration and path
-output_video = "Dijkstra_enpm661.mp4"
+output_video = "A_star_enpm661.mp4"
 frame_size = (inflated_maze_binary.shape[1] * 5, inflated_maze_binary.shape[0] * 5)
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 out = cv2.VideoWriter(output_video, fourcc, 30, frame_size)
@@ -271,8 +275,8 @@ for _ in range(30):  # Add 30 frames (1 second) of the final result
 out.release()
 
 # Print results
-print(f"Dijkstra Animation Saved as: {output_video}")
-print(f"Dijkstra Execution Time: {end_time - start_time:.4f} seconds")
+print(f"A_Star Animation Saved as: {output_video}")
+print(f"A_star Execution Time: {end_time - start_time:.4f} seconds")
 print(f"Nodes Explored: {len(explored_nodes)}")
 
 # Print path length if found
